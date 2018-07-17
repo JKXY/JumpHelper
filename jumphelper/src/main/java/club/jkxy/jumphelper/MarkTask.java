@@ -12,28 +12,26 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Created by JKXY on 2018/1/10.
  */
 
 public class MarkTask extends AsyncTask<Void, Void, Bitmap> {
-    private Bitmap bitmap;
+    private String path;
     private Context context;
-    private int x1, y1, x2, y2;
+    private ArrayList<Integer> point;
 
-    public MarkTask(Context context, Bitmap bitmap, int x1, int y1, int x2, int y2) {
+    public MarkTask(Context context, String path, ArrayList<Integer> point) {
         this.context = context;
-        this.bitmap = bitmap;
-        this.x1 = x1;
-        this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
+        this.path = path;
+        this.point = point;
     }
 
     @Override
     protected Bitmap doInBackground(Void... voids) {
-        return saveBitmap(addMarkBitmap(bitmap, x1, y1, x2, y2), context);
+        return saveBitmap(addMarkBitmap(path, point), context);
     }
 
     @Override
@@ -42,9 +40,9 @@ public class MarkTask extends AsyncTask<Void, Void, Bitmap> {
         if (bitmap != null && !bitmap.isRecycled()) {
             bitmap.recycle();
         }
-        if (this.bitmap != null && !this.bitmap.isRecycled()) {
-            this.bitmap.recycle();
-        }
+//        if (this.bitmap != null && !this.bitmap.isRecycled()) {
+//            this.bitmap.recycle();
+//        }
     }
 
 
@@ -80,14 +78,17 @@ public class MarkTask extends AsyncTask<Void, Void, Bitmap> {
 
 
     //添加标记
-    public Bitmap addMarkBitmap(Bitmap mBitmap, int x1, int y1, int x2, int y2) {
-        Bitmap originalBitmap = BitmapFactory.decodeFile(JumpAccessibilityService.path).copy(Bitmap.Config.ARGB_8888, true);
+    public Bitmap addMarkBitmap(String path, ArrayList<Integer> point) {
+        Bitmap originalBitmap = BitmapFactory.decodeFile(path).copy(Bitmap.Config.ARGB_8888, true);
         Canvas mCanvas = new Canvas(originalBitmap);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.RED);
-        mCanvas.drawCircle(x1, y1, 10, paint);
-        mCanvas.drawCircle(x2, y2, 10, paint);
+        if (point != null && point.size() > 0 && point.size() % 2 == 0) {
+            for (int i = 0; i < point.size() / 2; i++) {
+                mCanvas.drawCircle(point.get(i * 2), point.get(i * 2 + 1), 10, paint);
+            }
+        }
         return originalBitmap;
     }
 }

@@ -4,9 +4,11 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
@@ -18,8 +20,12 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.os.AsyncTaskCompat;
 import android.text.TextUtils;
+import android.view.Display;
+import android.view.WindowManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -37,11 +43,13 @@ public class Shotter {
     private MediaProjection mMediaProjection;
     private VirtualDisplay mVirtualDisplay;
     private String mLocalUrl = "";
+    private Context context;
 
     private OnShotListener mOnShotListener;
 
 
     public Shotter(Context context, Intent data) {
+        this.context = context;
         this.mRefContext = new SoftReference<>(context);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -118,7 +126,7 @@ public class Shotter {
                     if (TextUtils.isEmpty(mLocalUrl)) {
 //                        mLocalUrl = getContext().getExternalFilesDir("jumphelper").getAbsoluteFile()+ "/" +SystemClock.currentThreadTimeMillis() + ".png";
 //                        mLocalUrl = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "jump_" + SystemClock.currentThreadTimeMillis() + ".png";
-                        mLocalUrl = getContext().getExternalFilesDir("jumphelper").getAbsoluteFile() + "/jump_"+System.currentTimeMillis()+".png";
+                        mLocalUrl = getContext().getExternalFilesDir("jumphelper").getAbsoluteFile() + "/jump_" + System.currentTimeMillis() + ".png";
                     }
                     fileImage = new File(mLocalUrl);
                     if (!fileImage.exists()) {
@@ -177,7 +185,98 @@ public class Shotter {
     }
 
     private int getScreenHeight() {
-        return Resources.getSystem().getDisplayMetrics().heightPixels;
+        return getFullActivityHeight(context.getApplicationContext());
+    }
+
+
+    /**
+     * getResources().getDisplayMetrics().heightPixels 在三星S8上返回的值不对，没包含系统状态栏
+     *
+     * https://blog.csdn.net/xu20082100226/article/details/80076351
+     *
+     * @param context
+     * @return
+     */
+    public static int getFullActivityHeight(@Nullable Context context) {
+        if (!isAllScreenDevice(context)) {
+            return getScreenHeight(context);
+        }
+        return getScreenRealHeight(context);
+    }
+
+
+    private static final int PORTRAIT = 0;
+    private static final int LANDSCAPE = 1;
+    @NonNull
+    private volatile static Point[] mRealSizes = new Point[2];
+
+
+    public static int getScreenRealHeight(@Nullable Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            return getScreenHeight(context);
+        }
+
+        int orientation = context != null ? context.getResources().getConfiguration().orientation : context.getResources().getConfiguration().orientation;
+        orientation = orientation == Configuration.ORIENTATION_PORTRAIT ? PORTRAIT : LANDSCAPE;
+
+        if (mRealSizes[orientation] == null) {
+            WindowManager windowManager = context != null
+                    ? (WindowManager) context.getSystemService(Context.WINDOW_SERVICE)
+                    : (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+            if (windowManager == null) {
+                return getScreenHeight(context);
+            }
+            Display display = windowManager.getDefaultDisplay();
+            Point point = new Point();
+            display.getRealSize(point);
+            mRealSizes[orientation] = point;
+        }
+        return mRealSizes[orientation].y;
+    }
+
+    public static int getScreenHeight(@Nullable Context context) {
+        if (context != null) {
+            return context.getResources().getDisplayMetrics().heightPixels;
+        }
+        return 0;
+    }
+
+    private volatile static boolean mHasCheckAllScreen;
+    private volatile static boolean mIsAllScreenDevice;
+
+    /**
+     * 判断是否是全面屏
+     * @param context
+     * @return
+     */
+    public static boolean isAllScreenDevice(Context context) {
+        if (mHasCheckAllScreen) {
+            return mIsAllScreenDevice;
+        }
+        mHasCheckAllScreen = true;
+        mIsAllScreenDevice = false;
+        // 低于 API 21的，都不会是全面屏。。。
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            return false;
+        }
+        WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        if (windowManager != null) {
+            Display display = windowManager.getDefaultDisplay();
+            Point point = new Point();
+            display.getRealSize(point);
+            float width, height;
+            if (point.x < point.y) {
+                width = point.x;
+                height = point.y;
+            } else {
+                width = point.y;
+                height = point.x;
+            }
+            if (height / width >= 1.97f) {
+                mIsAllScreenDevice = true;
+            }
+        }
+        return mIsAllScreenDevice;
     }
 
 

@@ -21,7 +21,7 @@ public class NextCenterFinder {
 
         int width = image.getWidth();
         int height = image.getHeight();
-        int pixel = image.getPixel(0, 200);
+        int pixel = image.getPixel(200, 200);
         int r1 = (pixel & 0xff0000) >> 16;
         int g1 = (pixel & 0xff00) >> 8;
         int b1 = (pixel & 0xff);

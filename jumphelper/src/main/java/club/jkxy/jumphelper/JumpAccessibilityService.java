@@ -7,11 +7,16 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Path;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
+import android.util.Log;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Random;
 
 import club.jkxy.floatwindow.FloatWindow;
@@ -63,6 +68,7 @@ public class JumpAccessibilityService extends AccessibilityService {
             @Override
             public void run() {
 //                path = getExternalFilesDir("jumphelper").getAbsoluteFile() + "/newjump.png";
+//                path = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "jump.png";
                 isContinue = jump(path);
                 if (!isContinue) {
                     FloatWindow.get().show();
@@ -79,58 +85,56 @@ public class JumpAccessibilityService extends AccessibilityService {
         }, 1_000);
     }
 
-
+    //标记点
+    private ArrayList<Integer> makePoint;
     private boolean jump(String path) {
         Bitmap image = ImgLoader.load(path);
-        int[] myPos = null;
+        makePoint = new ArrayList<Integer>();
         if (jumpRatio == 0) {
             jumpRatio = JUMP_RATIO * 1080 / image.getWidth();
         }
-        try {
-            myPos = myPosFinder.find(image);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        int[] myPos = myPosFinder.find(image);
         if (myPos != null) {
             LogUtils.e("JUMP", "find myPos, succ, (" + myPos[0] + ", " + myPos[1] + ")");
-            int[] nextCenter = null;
-            try {
-                nextCenter = nextCenterFinder.find(image, myPos);
-                blackBorderFinder.find(image);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            int[] nextCenter = nextCenterFinder.find(image, myPos);
             if (nextCenter == null || nextCenter[0] == 0) {
                 LogUtils.e("JUMP", "find nextCenter, fail");
                 return false;
             } else {
+                makePoint.add(myPos[0]);
+                makePoint.add(myPos[1]);
                 int centerX, centerY;
-                int[] whitePoint = null;
-                try {
-                    whitePoint = whitePointFinder.find(image, nextCenter[0] - 120, nextCenter[1], nextCenter[0] + 120, nextCenter[1] + 180);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                int[] whitePoint = whitePointFinder.find(image, nextCenter[0] - 120, nextCenter[1], nextCenter[0] + 120, nextCenter[1] + 180);
                 if (whitePoint != null) {
                     centerX = whitePoint[0];
                     centerY = whitePoint[1];
+                    makePoint.add(whitePoint[0]);
+                    makePoint.add(whitePoint[1]);
                     LogUtils.e("JUMP", "find whitePoint, succ, (" + centerX + ", " + centerY + ")");
                 } else {
                     if (nextCenter[2] != Integer.MAX_VALUE && nextCenter[4] != Integer.MIN_VALUE) {
                         centerX = (nextCenter[2] + nextCenter[4]) / 2;
                         centerY = (nextCenter[3] + nextCenter[5]) / 2;
+
+                        makePoint.add(nextCenter[0]);
+                        makePoint.add(nextCenter[1]);
+                        makePoint.add(nextCenter[2]);
+                        makePoint.add(nextCenter[3]);
+                        makePoint.add(nextCenter[4]);
+                        makePoint.add(nextCenter[5]);
                         LogUtils.e("JUMP", "nextCenter========>11: (" + centerX + ", " + centerY + ")");
                     } else {
                         centerX = nextCenter[0];
                         centerY = nextCenter[1] + 48;
+                        makePoint.add(nextCenter[0]);
+                        makePoint.add(nextCenter[1]);
                         LogUtils.e("JUMP", "nextCenter========>22: (" + centerX + ", " + centerY + ")");
                     }
                 }
+                makePoint.add(centerX);
+                makePoint.add(centerY);
                 LogUtils.e("JUMP", "find nextCenter, succ, (" + centerX + ", " + centerY + ")");
-//                new MarkTask(getApplicationContext(), image, myPos[0], myPos[1], centerX, centerY).execute();
-//                new MarkTask(getApplicationContext(), image, myPos[0], myPos[1], nextCenter[0], nextCenter[1]).execute();
-//                new MarkTask(getApplicationContext(), image, nextCenter[2], nextCenter[3], nextCenter[4], nextCenter[5]).execute();
+//                new MarkTask(getApplicationContext(), path, makePoint).execute();
                 double distance = Math.sqrt((centerX - myPos[0]) * (centerX - myPos[0]) + (centerY - myPos[1]) * (centerY - myPos[1]));//1.385
                 LogUtils.e("JUMP", "distance:" + distance);
                 long time = (long) (distance * jumpRatio);
@@ -160,6 +164,7 @@ public class JumpAccessibilityService extends AccessibilityService {
             FloatWindow.get().getView().setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    LogUtils.e("JUMP", "FloatWindow:OnClick");
                     FloatWindow.get().hide();
                     startJump();
                 }
