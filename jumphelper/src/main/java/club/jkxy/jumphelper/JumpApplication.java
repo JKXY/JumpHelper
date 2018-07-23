@@ -20,10 +20,13 @@ public class JumpApplication extends Application {
     public void onCreate() {
         super.onCreate();
         context = this;
+        registerActivityLifecycleCallbacks(ActivityLifecycleHelper.build());
 
-        View view = LayoutInflater.from(getApplicationContext()).inflate(R.layout.layout_float_window, null);
+        View view = LayoutInflater.from(getApplicationContext()).inflate(R.layout.layout_float_window_start, null);
         FloatWindow.with(getApplicationContext()).setDesktopShow(true).setView(view).setMoveType(MoveType.slide).setX(400).build();
-        FloatWindow.get().show();
+
+        View view_stop = LayoutInflater.from(getApplicationContext()).inflate(R.layout.layout_float_window_stop, null);
+        FloatWindow.with(getApplicationContext()).setTag("STOP").setDesktopShow(true).setView(view_stop).setMoveType(MoveType.slide).setX(400).build();
     }
 
     public static Context getContext() {

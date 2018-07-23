@@ -2,13 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="10dp">
 
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"
         android:orientation="horizontal">
 
         <TextView
@@ -37,6 +37,68 @@
             android:layout_gravity="center"
             android:text="恢复默认" />
     </LinearLayout>
+
+
+    <RadioGroup
+        android:id="@+id/typeRg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/type1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="全自动（适用单人游戏）" />
+
+        <RadioButton
+            android:id="@+id/type2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="全自动一次（适用多人游戏）" />
+
+        <RadioButton
+            android:id="@+id/type3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="半自动（适用单人游戏）" />
+
+        <RadioButton
+            android:id="@+id/type4"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="半自动一次（适用多人游戏）" />
+    </RadioGroup>
+
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:lineSpacingExtra="3sp"
+        android:text="弹跳系数：因手机屏幕不同，弹跳距离会不一样，若发现弹跳距离有问题，需手动调整\n全自动：自动识别计算距离，不需要人工操作；一次：辅助执行一次，若需要在执行一次，点击悬浮框开始即可\n半自动：需手动标识距离；方法：开始辅助后，当屏幕出现[开始]字样时，手从起点按下从终点抬起即可，即完成一次标识"
+        android:textSize="14sp" />
+
+    <RelativeLayout
+        android:id="@+id/startBtn"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp">
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@mipmap/start_bg" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:lineSpacingExtra="3sp"
+            android:layout_centerInParent="true"
+            android:text="开启\n辅助"
+            android:textColor="#13227a"
+            android:textSize="20sp" />
+    </RelativeLayout>
 
 
 </LinearLayout>

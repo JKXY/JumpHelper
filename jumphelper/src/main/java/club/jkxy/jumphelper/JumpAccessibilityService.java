@@ -3,10 +3,13 @@ package club.jkxy.jumphelper;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Path;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -40,10 +43,16 @@ public class JumpAccessibilityService extends AccessibilityService {
     MyPosFinder myPosFinder = new MyPosFinder();
     NextCenterFinder nextCenterFinder = new NextCenterFinder();
     WhitePointFinder whitePointFinder = new WhitePointFinder();
-
-    BlackBorderFinder blackBorderFinder = new BlackBorderFinder();
     double jumpRatio = 0;
     private static Random RANDOM = new Random();
+
+    private boolean isJump = false;//触摸jump方式，是否继续
+
+    public static final int TYPR_1 = 0;//全自动
+    public static final int TYPR_2 = TYPR_1 + 1;//全自动一次
+    public static final int TYPR_3 = TYPR_2 + 1;//半自动
+    public static final int TYPR_4 = TYPR_3 + 1;//半自动一次
+    public static int currType = TYPR_1;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
@@ -70,7 +79,7 @@ public class JumpAccessibilityService extends AccessibilityService {
 //                path = getExternalFilesDir("jumphelper").getAbsoluteFile() + "/newjump.png";
 //                path = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + "jump.png";
                 isContinue = jump(path);
-                if (!isContinue) {
+                if (!isContinue || currType == TYPR_2) {
                     FloatWindow.get().show();
                 } else {
                     long sleeptime = RANDOM.nextInt(1000) + 3000;//  [3000,4000)
@@ -85,8 +94,68 @@ public class JumpAccessibilityService extends AccessibilityService {
         }, 1_000);
     }
 
+
+    public void startTouchJump() {
+        if (jumpRatio == 0) {
+            int widthPixels = Resources.getSystem().getDisplayMetrics().widthPixels;
+            jumpRatio = JUMP_RATIO * 1080 / widthPixels;
+        }
+        if (isJump) {
+            Intent intent = new Intent(getApplicationContext(), TouchJumpActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    Activity latestActivity = ActivityLifecycleHelper.getLatestActivity();
+                    if (latestActivity instanceof TouchJumpActivity)
+                        ((TouchJumpActivity) (latestActivity)).setJumpListener(jumpListener);
+                }
+            }, 100);
+        } else {
+            FloatWindow.get("STOP").hide();
+            FloatWindow.get().show();
+        }
+    }
+
+
+    public JumpView.JumpListener jumpListener = new JumpView.JumpListener() {
+        @Override
+        public void getTouchPoint(float downX, float downY, float upX, float upY) {
+            double distance = Math.sqrt((upX - downX) * (upX - downX) + (upY - downY) * (upY - downY));//1.385
+            LogUtils.e("JUMP", "distance:" + distance);
+            final long time = (long) (distance * jumpRatio);
+            LogUtils.e("JUMP", "time:" + time);
+            //触摸区域随机在中下方
+            final int x = (int) (Math.random() * Screen.width / 3 + Screen.width / 3);
+            final int y = (int) (Math.random() * Screen.height / 2 + Screen.height / 2);
+            ActivityLifecycleHelper.getLatestActivity().finish();
+//            isJump = findPointClick(x, y, time);
+//            findPointClick(x, y, time);
+            if (isJump) {
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        findPointClick(x, y, time);
+                        try {
+//                            long sleeptime = RANDOM.nextInt(1000) + 3000;
+                            Thread.sleep(time * 2 + 600);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        if (currType == TYPR_4)
+                            isJump = false;
+                        startTouchJump();
+                    }
+                }, 100);
+            }
+        }
+    };
+
+
     //标记点
     private ArrayList<Integer> makePoint;
+
     private boolean jump(String path) {
         Bitmap image = ImgLoader.load(path);
         makePoint = new ArrayList<Integer>();
@@ -164,9 +233,27 @@ public class JumpAccessibilityService extends AccessibilityService {
             FloatWindow.get().getView().setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    LogUtils.e("JUMP", "FloatWindow:OnClick");
                     FloatWindow.get().hide();
-                    startJump();
+                    if (currType == TYPR_1) {
+                        startJump();
+                    } else {
+                        isJump = true;
+                        startTouchJump();
+                        FloatWindow.get("STOP").show();
+                    }
+                }
+            });
+
+
+            FloatWindow.get("STOP").getView().setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    isJump = false;
+                    FloatWindow.get("STOP").hide();
+                    FloatWindow.get().show();
+                    Activity latestActivity = ActivityLifecycleHelper.getLatestActivity();
+                    if (latestActivity instanceof TouchJumpActivity)
+                        latestActivity.finish();
                 }
             });
         }
@@ -213,6 +300,5 @@ public class JumpAccessibilityService extends AccessibilityService {
         LogUtils.e("JUMP", "the findPointClick(" + x + "," + y + ") is " + result);
         return result;
     }
-
-
 }
+

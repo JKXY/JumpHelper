@@ -62,7 +62,7 @@ public final class LogUtils {
     private static String          sDefaultDir;// log默认存储目录
     private static String          sDir;       // log存储目录
     private static String  sFilePrefix        = "util";// log文件前缀
-    private static boolean sLogSwitch         = false;  // log总开关，默认开
+    private static boolean sLogSwitch         = true;  // log总开关，默认开
     private static boolean sLog2ConsoleSwitch = true;  // logcat是否打印，默认打印
     private static String  sGlobalTag         = null;  // log标签
     private static boolean sTagIsSpace        = true;  // log标签是否为空白
